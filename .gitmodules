@@ -1,0 +1,3 @@
+[submodule "open_source_project/coffee-shop-data-viz"]
+	path = open_source_project/coffee-shop-data-viz
+	url = https://github.com/barefoottico/publicstash.git

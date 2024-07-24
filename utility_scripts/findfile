@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+from multiprocessing import Pool, cpu_count
+
+def find_files_and_dirs(args):
+    name_pattern, root = args
+    file_matches = []
+    dir_matches = []
+    try:
+        for dirpath, dirs, files in os.walk(root):
+            # Check directories
+            for dir_name in dirs:
+                if name_pattern.lower() in dir_name.lower():
+                    dir_matches.append(os.path.join(dirpath, dir_name))
+            # Check files
+            for file_name in files:
+                if name_pattern.lower() in file_name.lower():
+                    file_matches.append(os.path.join(dirpath, file_name))
+    except Exception as e:
+        print(f"Error while searching {root}: {e}", file=sys.stderr)
+    return file_matches, dir_matches
+
+def main():
+    if len(sys.argv) not in [2, 3]:
+        print("Usage: findfile <name_pattern> [<search_path>]")
+        sys.exit(1)
+
+    name_pattern = sys.argv[1]
+    search_path = os.path.expanduser(sys.argv[2]) if len(sys.argv) == 3 else os.path.expanduser("~")
+
+    # List all directories in the search path
+    all_dirs = []
+    for root, dirs, _ in os.walk(search_path):
+        all_dirs.extend([os.path.join(root, d) for d in dirs])
+
+    print(f"Searching in {search_path}...")
+    print(f"Total directories found: {len(all_dirs)}")
+
+    # Use multiprocessing to search in parallel
+    with Pool(cpu_count()) as pool:
+        results = pool.map(find_files_and_dirs, [(name_pattern, d) for d in all_dirs])
+
+    # Flatten the list of results
+    file_matches = [item for sublist in (result[0] for result in results) for item in sublist]
+    dir_matches = [item for sublist in (result[1] for result in results) for item in sublist]
+
+    print(f"Number of folders searched: {len(all_dirs)}")
+    
+    if file_matches:
+        print("\nFiles found:")
+        for match in file_matches:
+            print(match)
+    else:
+        print("No files found.")
+
+    if dir_matches:
+        print("\nDirectories found:")
+        for match in dir_matches:
+            print(match)
+    else:
+        print("No directories found.")
+
+if __name__ == "__main__":
+    main()
+
